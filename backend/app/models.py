@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from pydantic import EmailStr
 from sqlalchemy import DateTime
@@ -7,7 +7,7 @@ from sqlmodel import Field, Relationship, SQLModel
 
 
 def get_datetime_utc() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 # Shared properties
@@ -53,8 +53,9 @@ class User(UserBase, table=True):
         default_factory=get_datetime_utc,
         sa_type=DateTime(timezone=True),  # type: ignore
     )
-    items: list["Item"] = Relationship(back_populates="owner", cascade_delete=True)
-    expences: list["Expence"] = Relationship(back_populates="owner", cascade_delete=True)
+    items: list[Item] = Relationship(back_populates="owner", cascade_delete=True)
+    expences: list[Expence] = Relationship(back_populates="owner", cascade_delete=True)
+    incomes: list[Income] = Relationship(back_populates="owner", cascade_delete=True)
 
 
 # Properties to return via API, id is always required
@@ -130,25 +131,25 @@ class NewPassword(SQLModel):
     new_password: str = Field(min_length=8, max_length=128)
 
 
-class ExpenceBase(SQLModel):
+class TransactionBase(SQLModel):
     title: str = Field(min_length=1, max_length=255)
     category: str | None = Field(default=None, max_length=255)
     amount: float = Field(gt=0)
     date: datetime = Field(default_factory=get_datetime_utc)
 
 
-class ExpenceCreate(ExpenceBase):
+class TransactionCreate(TransactionBase):
     pass
 
 
-class ExpenceUpdate(ExpenceBase):
+class TransactionUpdate(TransactionBase):
     title: str | None = Field(default=None, min_length=1, max_length=255)
     category: str | None = Field(default=None, max_length=255)
     amount: float | None = Field(default=None, gt=0)
     date: datetime | None = Field(default=None)
 
 
-class Expence(ExpenceBase, table=True):
+class TransactionTable(TransactionBase):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     created_at: datetime | None = Field(
         default_factory=get_datetime_utc,
@@ -157,5 +158,11 @@ class Expence(ExpenceBase, table=True):
     owner_id: uuid.UUID = Field(
         foreign_key="user.id", nullable=False, ondelete="CASCADE"
     )
+
+
+class Expence(TransactionTable, table=True):
     owner: User | None = Relationship(back_populates="expences")
 
+
+class Income(TransactionTable, table=True):
+    owner: User | None = Relationship(back_populates="incomes")

@@ -5,7 +5,7 @@ from fastapi import APIRouter, HTTPException
 from sqlmodel import select
 
 from app.api.deps import CurrentUser, SessionDep
-from app.models import Expence, ExpenceCreate, ExpenceUpdate
+from app.models import Expence, TransactionCreate, TransactionUpdate
 
 router = APIRouter(prefix="/expences", tags=["expences"])
 
@@ -20,14 +20,14 @@ def read_expences(
 
     if current_user.is_superuser:
         statement = (
-            select(Expence).order_by(Expence.date.desc()).offset(skip).limit(limit)
+            select(Expence).order_by(Expence.date.desc()).offset(skip).limit(limit)  # ty:ignore[unresolved-attribute]
         )
         expences = session.exec(statement).all()
     else:
         statement = (
             select(Expence)
             .where(Expence.owner_id == current_user.id)
-            .order_by(Expence.date.desc())
+            .order_by(Expence.date.desc())  # ty:ignore[unresolved-attribute]
             .offset(skip)
             .limit(limit)
         )
@@ -51,7 +51,7 @@ def read_expence(session: SessionDep, current_user: CurrentUser, id: uuid.UUID) 
 
 @router.post("/", response_model=Expence)
 def create_expence(
-    session: SessionDep, current_user: CurrentUser, expence_in: ExpenceCreate
+    session: SessionDep, current_user: CurrentUser, expence_in: TransactionCreate
 ) -> Any:
     """
     Create new expence.
@@ -69,7 +69,7 @@ def update_expence(
     session: SessionDep,
     current_user: CurrentUser,
     id: uuid.UUID,
-    expence_in: ExpenceUpdate,
+    expence_in: TransactionUpdate,
 ) -> Any:
     """
     Update an expence.
